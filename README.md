@@ -1,192 +1,236 @@
 # 🧠 LLM Content Factory
 
-Plataforma de automação de conteúdo usando **LLMs + workflows + CMS**, focada em **qualidade, escala e controle humano**.
+**LLM Content Factory** is an open-source platform for **content automation with quality control**.
 
-Não é só “gerar texto com IA”.
-É **planejar, gerar, revisar, publicar e aprender** com dados reais.
+It combines **LLMs, workflows, and a CMS** to automate content creation while keeping:
 
----
+* editorial consistency
+* human oversight
+* traceability
+* learning from real metrics
 
-## 🎯 Objetivo
-
-Automatizar a produção de conteúdo multi-canal (blog, email, social, ads, docs) garantindo:
-
-* Consistência de marca
-* Qualidade editorial
-* Redução de trabalho manual
-* Aprendizado contínuo via métricas
-
-Com **LLM como motor**, não como cérebro único.
+This is **not** a “generate text with AI” tool.
+It is a **content production system**.
 
 ---
 
-## 🧩 Visão geral da arquitetura
+## ✨ What this project is (and is not)
 
-**Stack principal:**
+### ✅ What it is
 
-* **Next.js** → Admin UI + APIs
-* **Strapi** → CMS e fonte de verdade editorial
-* **Node Workers** → Orquestração e jobs
-* **OpenAI** → LLM + embeddings
-* **Postgres + pgvector** → Dados + RAG
-* **Redis + BullMQ** → Filas e jobs assíncronos
+* A workflow-driven content automation platform
+* LLMs acting as **planner, generator, and critic**
+* CMS-backed, auditable, and versioned
+* Designed for scale and real teams
 
-Fluxo resumido:
+### ❌ What it is not
+
+* A prompt playground
+* A no-review auto-publisher
+* A single-script AI toy
+* A black box
+
+---
+
+## 🎯 Goals
+
+* Automate multi-channel content production (blog, email, social, ads, docs)
+* Enforce brand and quality guardrails
+* Reduce manual operational work
+* Learn from performance data over time
+
+LLMs are used as **engines**, not as a single source of truth.
+
+---
+
+## 🧩 High-level architecture
+
+### Core stack
+
+* **Next.js** → Admin UI & APIs
+* **Strapi** → Editorial CMS & source of truth
+* **Node Workers** → Async orchestration
+* **OpenAI** → LLMs & embeddings
+* **Postgres + pgvector** → Data & RAG
+* **Redis + BullMQ** → Job queues
+
+### Simplified flow
 
 ```
-Editor → Next Admin → API → Queue
-     → Orchestrator → LLMs
-     → Strapi → Publicação
-     → Métricas → Feedback Loop
+Editor → Admin UI → API → Queue
+     → Worker → LLMs
+     → CMS → Publish
+     → Metrics → Feedback loop
 ```
+
+---
 
 ## 🗺 Big Picture
 
 ```mermaid
 flowchart TD
-  A[Humano / Editor] -->|Briefing, objetivo, persona| B[Next.js Admin UI]
+  A[Human / Editor] -->|Briefing| B[Next.js Admin UI]
 
-  B -->|Create Campaign| C[Next.js API]
-  C -->|Persist metadata| D[Strapi CMS]
+  B -->|Create campaign| C[Next.js API]
+  C -->|Persist data| D[Strapi CMS]
   C -->|Enqueue jobs| E[Queue - BullMQ + Redis]
 
-  %% Orchestration
-  E --> F[Orchestrator Worker]
+  E --> F[Worker]
 
-  %% Planning
   F --> G[LLM Planner]
-  G -->|Plano editorial + tasks| D
+  G -->|Content plan| D
 
-  %% Knowledge / RAG
-  D -->|Docs de marca, produto, politicas| H[Knowledge Base]
-  H -->|Embeddings| I[Vector DB - pgvector]
-  F -->|Retrieve context| I
+  D --> H[Knowledge Base]
+  H --> I[Vector DB - pgvector]
+  F -->|Context retrieval| I
 
-  %% Generation
   F --> J[LLM Generator]
-  J -->|Drafts + variacoes| D
+  J --> D
 
-  %% Review
-  F --> K[LLM Critic - qualidade e policy]
-  K -->|Score + issues| D
+  F --> K[LLM Critic]
+  K --> D
 
-  %% Decision
-  D --> L{Aprovado?}
-  L -- Nao --> B
-  L -- Sim --> M[Agendamento / Publicacao]
+  D --> L{Approved?}
+  L -- No --> B
+  L -- Yes --> M[Publish]
 
-  %% Publishing
-  M --> N[Canais - Blog, Email, Social, Ads]
-
-  %% Metrics
-  N --> O[Metricas - GA4 e Amplitude]
-  O -->|Feedback| F
-
-  %% Learning loop
-  F -->|Aprendizado| G
-
+  M --> N[Channels]
+  N --> O[Metrics]
+  O --> F
 ```
 
 ---
 
-## ✨ Principais features
+## ✨ Features
 
-* 📋 **Planejamento automático de conteúdo**
-* ✍️ **Geração multi-canal (1 ideia → N formatos)**
-* 🧪 **Variações A/B**
-* 🧐 **Revisão automática (LLM Critic)**
-* 🧱 **RAG com base de conhecimento**
-* 🗓 **Agendamento e publicação**
-* 📊 **Feedback loop com métricas**
-* 🧍 **Aprovação humana opcional (mas recomendada)**
+* 📋 Automated content planning
+* ✍️ Multi-channel generation
+* 🧪 A/B variations
+* 🧐 Automated review & scoring
+* 🧱 Retrieval-Augmented Generation (RAG)
+* 🗓 Scheduling & publishing
+* 📊 Metrics-driven feedback loop
+* 🧍 Human approval (optional, recommended)
 
 ---
 
-## 🧠 Conceitos importantes
+## 🧠 Core concepts
 
 ### Campaign
 
-Agrupador de conteúdo com:
+A logical group of content with:
 
-* objetivo
+* goal
 * persona
-* canais
-* status
+* channels
+* lifecycle status
 
 ### Content Task
 
-Uma unidade de trabalho:
+A single unit of work:
 
-* ex: “Post SEO”, “Thread LinkedIn”, “Email”
+* e.g. SEO article, email, social post
 
 ### Content Version
 
-Versões geradas de um conteúdo (com histórico e score).
+A generated version with:
+
+* revision history
+* quality score
+* approval status
 
 ### Knowledge Base (RAG)
 
-Documentos de:
+Documents such as:
 
-* marca
-* produto
+* brand guidelines
+* product docs
 * FAQs
-* políticas
-  Indexados em vetor para reduzir alucinação.
+* policies
+
+Indexed for semantic retrieval.
 
 ---
 
-## 🛡 Guardrails (por design)
+## 🛡 Design guardrails
 
-Este projeto **não confia cegamente no LLM**.
+This project **does not blindly trust LLMs**.
 
-* ❌ Conteúdo sem fonte → marcado
-* ❌ Violação de tom/marca → reprovado
-* ❌ Linguagem genérica (“revolucionário”, “líder de mercado”) → penalizada
-* ✅ Logs de prompts e respostas
-* ✅ Score de qualidade por versão
+* ❌ No source → flagged
+* ❌ Brand violations → rejected
+* ❌ Generic marketing language → penalized
+* ✅ Prompt & response logging
+* ✅ Explicit quality scoring
 
 ---
 
-## 📦 Estrutura do repositório
+## 📦 Repository structure
 
 ```
 .
 ├── apps/
-│   ├── web/          # Next.js (Admin + APIs)
-│   ├── cms/          # Strapi
-│   └── worker/       # Orchestrator + BullMQ
+│   ├── web/        # Next.js admin & APIs
+│   ├── cms/        # Strapi CMS
+│   └── worker/     # Background jobs & orchestration
 │
 ├── packages/
-│   └── shared/       # Tipos, schemas, clients
+│   └── shared/     # Shared types, schemas, utilities
 │
 ├── infra/
-│   ├── docker/       # Postgres, Redis
-│   └── migrations/
+│   ├── docker/     # Docker Compose setup
+│   └── migrations/# Database migrations
 │
+├── Makefile        # Project interface
 └── README.md
 ```
 
 ---
 
-## 🔄 Fluxo de funcionamento
+## 🧰 Getting started (local development)
 
-1. Editor cria uma **Campaign** no Admin
-2. API cria o draft no Strapi
-3. Job é enfileirado (BullMQ)
-4. Orchestrator executa:
+This project uses **Docker + Makefile** as the primary interface.
 
-   * Planner → Generator → Critic
-5. Conteúdo é salvo como:
+### Requirements
 
-   * `needs_review` ou `ready`
-6. Editor aprova (opcional)
-7. Strapi publica ou agenda
-8. Métricas retornam para o sistema
-9. Próximos conteúdos melhoram 📈
+* Docker & Docker Compose
+* Node.js 18+
+* Make
+
+### One-command setup
+
+```bash
+make dev
+```
+
+This will:
+
+1. Start Redis, Postgres, Strapi, Worker, and Web
+2. Run database migrations
+3. Expose the local environment
+
+### Local URLs
+
+* Admin UI: [http://localhost:3000/admin](http://localhost:3000/admin)
+* Strapi Admin: [http://localhost:1337/admin](http://localhost:1337/admin)
 
 ---
 
-## 🧪 Jobs principais
+## 🧱 Useful Makefile commands
+
+```bash
+make infra-up        # Start containers
+make infra-down      # Stop containers
+make infra-logs      # Tail logs
+make migrate         # Run DB migrations
+make web             # Run web locally
+make worker          # Run worker locally
+make cms             # Run CMS locally
+make reset           # Remove containers and volumes (destructive)
+```
+
+---
+
+## 🧪 Main background jobs
 
 * `plan_campaign`
 * `generate_task`
@@ -197,70 +241,67 @@ Este projeto **não confia cegamente no LLM**.
 
 ---
 
-## 📊 Métricas coletadas
+## 📊 Metrics & learning
+
+The system tracks:
 
 * CTR
-* Engajamento
-* Conversão
-* Performance por título / CTA
-* Performance por canal
+* Engagement
+* Conversion
+* Performance by channel
+* Performance by title/CTA
 
-Tudo associado a um `contentVersionId`.
-
----
-
-## 🚀 Como rodar localmente (resumo)
-
-```bash
-# Infra
-docker compose up -d postgres redis
-
-# CMS
-cd apps/cms
-yarn develop
-
-# Worker
-cd apps/worker
-yarn dev
-
-# Web
-cd apps/web
-yarn dev
-```
-
-> Requisitos: Node 18+, Docker, Redis
+All metrics are linked to a specific content version.
 
 ---
 
-## ⚠️ Limitações conhecidas
+## ⚠️ Known limitations
 
-* Não substitui revisão humana em conteúdo sensível
-* RAG depende da qualidade da base
-* LLM pode errar — por isso existe o Critic 😌
-
----
-
-## 🛣 Roadmap (curto)
-
-* [ ] Rerank semântico nos resultados do RAG
-* [ ] Editor visual de prompts
-* [ ] Benchmark automático de títulos
-* [ ] Custom policies por cliente
-* [ ] Fine-tuning opcional por domínio
+* Human review is still required for sensitive content
+* RAG quality depends on the knowledge base
+* LLMs can fail — that’s why critics and logs exist
 
 ---
 
-## 🧠 Filosofia do projeto
+## 🛣 Roadmap
 
-> IA não é autora.
-> É estagiária rápida, incansável e meio atrevida.
-> Por isso tem processo, revisão e métrica.
+* [ ] Semantic reranking for RAG
+* [ ] Prompt editor UI
+* [ ] Automatic title benchmarking
+* [ ] Per-tenant policy rules
+* [ ] Optional fine-tuning
 
 ---
 
-Se quiser, no próximo passo eu posso:
+## 🤝 Contributing
 
-* adaptar o README para **open-source**
-* escrever uma versão **mais “enterprise”**
-* ou criar um **README técnico + README de produto**
+Contributions are welcome.
+
+Typical ways to contribute:
+
+* Improve prompts and critics
+* Add new jobs or workflows
+* Improve observability
+* Fix bugs or edge cases
+* Improve documentation
+
+Please:
+
+* keep changes focused
+* document architectural decisions
+* avoid introducing hidden magic
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+## 🧠 Philosophy
+
+> LLMs are not authors.
+> They are fast, tireless assistants.
+> Systems, process, and metrics keep them useful.
 
